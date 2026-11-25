@@ -85,6 +85,9 @@ getJasmineRequireObj().DelayedFunctionScheduler = function(j$, private$) {
         return;
       }
 
+      const nextFns = this.scheduledFunctions_[this.scheduledLookup_[0]];
+      throwIfZeroInterval(nextFns && nextFns[0]);
+
       const newCurrentTime = this.scheduledLookup_[0];
       if (newCurrentTime >= this.currentTime_) {
         tickDate(newCurrentTime - this.currentTime_);
@@ -124,6 +127,13 @@ getJasmineRequireObj().DelayedFunctionScheduler = function(j$, private$) {
     }
 
     do {
+      const queued = this.scheduledFunctions_[this.scheduledLookup_[0]];
+      if (queued) {
+        for (let i = 0; i < queued.length; i++) {
+          throwIfZeroInterval(queued[i]);
+        }
+      }
+
       this.deletedKeys_ = [];
       const newCurrentTime = this.scheduledLookup_.shift();
       if (newCurrentTime >= this.currentTime_) {
@@ -184,6 +194,14 @@ getJasmineRequireObj().DelayedFunctionScheduler = function(j$, private$) {
       this.scheduledLookup_.splice(i, 1);
     }
   };
+
+  function throwIfZeroInterval(fn) {
+    if (fn && fn.recurring && fn.millis === 0) {
+      throw new Error(
+        'The mock clock cannot tick when a 0ms interval is scheduled, because the clock would not advance.'
+      );
+    }
+  }
 
   function indexOfFirstToPass(array, testFn) {
     let index = -1;

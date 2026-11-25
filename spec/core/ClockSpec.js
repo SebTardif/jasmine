@@ -730,6 +730,37 @@ describe('Clock (acceptance)', function() {
     expect(recurring1.calls.count()).toBe(4);
   });
 
+  it('throws when tick would run a 0ms interval', function() {
+    const clock = new privateUnderTest.Clock(
+      {
+        setTimeout: setTimeout,
+        clearTimeout: clearTimeout,
+        setInterval: setInterval,
+        clearInterval: clearInterval
+      },
+      function() {
+        return new privateUnderTest.DelayedFunctionScheduler();
+      },
+      {
+        install: function() {},
+        tick: function() {},
+        uninstall: function() {}
+      }
+    );
+    const fn = jasmine.createSpy('fn');
+
+    clock.install();
+    clock.setInterval(fn, 0);
+
+    expect(function() {
+      clock.tick(1);
+    }).toThrowError(
+      'The mock clock cannot tick when a 0ms interval is scheduled, because the clock would not advance.'
+    );
+    expect(fn).not.toHaveBeenCalled();
+    clock.uninstall();
+  });
+
   describe('auto tick mode', () => {
     let delayedFunctionScheduler;
     let mockDate;

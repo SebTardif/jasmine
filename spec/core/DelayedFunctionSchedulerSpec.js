@@ -24,6 +24,60 @@ describe('DelayedFunctionScheduler', function() {
     );
   });
 
+  it('throws when tick would run a 0ms interval', function() {
+    const scheduler = new privateUnderTest.DelayedFunctionScheduler();
+    const fn = jasmine.createSpy('fn');
+
+    scheduler.scheduleFunction(fn, 0, [], true);
+
+    expect(function() {
+      scheduler.tick(1);
+    }).toThrowError(
+      'The mock clock cannot tick when a 0ms interval is scheduled, because the clock would not advance.'
+    );
+    expect(fn).not.toHaveBeenCalled();
+  });
+
+  it('still runs a 0ms timeout scheduled during tick', function() {
+    const scheduler = new privateUnderTest.DelayedFunctionScheduler();
+    const fn = jasmine.createSpy('fn');
+
+    scheduler.scheduleFunction(function() {
+      scheduler.scheduleFunction(fn, 0);
+    }, 0);
+
+    expect(function() {
+      scheduler.tick(1);
+    }).not.toThrow();
+    expect(fn).toHaveBeenCalled();
+  });
+
+  it('throws when a 0ms interval is scheduled during tick', function() {
+    const scheduler = new privateUnderTest.DelayedFunctionScheduler();
+
+    scheduler.scheduleFunction(function() {
+      scheduler.scheduleFunction(function() {}, 0, [], true);
+    }, 0);
+
+    expect(function() {
+      scheduler.tick(10);
+    }).toThrowError(
+      'The mock clock cannot tick when a 0ms interval is scheduled, because the clock would not advance.'
+    );
+  });
+
+  it('does not run a 0ms interval that is still in the future', function() {
+    const scheduler = new privateUnderTest.DelayedFunctionScheduler();
+    const fn = jasmine.createSpy('fn');
+
+    scheduler.scheduleFunction(fn, 100, [], true);
+
+    expect(function() {
+      scheduler.tick(50);
+    }).not.toThrow();
+    expect(fn).not.toHaveBeenCalled();
+  });
+
   it('#tick defaults to 0', function() {
     const scheduler = new privateUnderTest.DelayedFunctionScheduler();
     const fn = jasmine.createSpy('fn');
